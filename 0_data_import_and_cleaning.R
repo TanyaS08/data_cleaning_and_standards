@@ -65,8 +65,6 @@ if (nrow(anti_join(abundance, traits)) > 0) {
 ### 2) Adding taxonomic data ----
 
 library(taxize)
-# helper function for 'not in'
-'%!in%' <- function(x,y)!('%in%'(x,y))
 
 # get taxo data 
 
@@ -74,7 +72,7 @@ taxon_backbone =
   abundance %>%
   distinct(taxon) %>%
   # we know for unknow species we cannot get any taxo data
-  filter(taxon %!in% c("Unknown")) %>%
+  filter(taxon != "Unknown") %>%
   pull(taxon) %>%
   classification(db = 'itis',
                  # remove 'interaction' to 'automate' pocess
@@ -88,8 +86,8 @@ taxon_backbone =
 
 if (nrow(taxon_backbone) == nrow(abundance %>%
                                  distinct(taxon)%>%
-                                 # we know for unknow species we cannot get any taxo data
-                                 filter(taxon %!in% c("Unknown")))) {
+                                 # we know for unknown species we cannot get any taxo data
+                                 filter(taxon != "Unknown"))) {
   print("All species have a resolved taxonomy :)")
 } else {
   missing = anti_join(abundance%>%
@@ -120,28 +118,29 @@ if (nrow(taxon_backbone) == nrow(abundance %>%
                  mutate(rank = str_to_lower(rank)) %>% 
                  filter(rank %in% c("kingdom", "phylum", "class", "subclass",
                                     "order", "family", "genus", "species")) %>%
-                 pivot_wider(., id_cols = "query", names_from = "rank", values_from = "name")) %>%
-     select(-query)
+                 pivot_wider(., id_cols = "query", names_from = "rank", values_from = "name") %>%
+                 mutate(query = subclass))
    
    # Check again
    
    if (nrow(taxon_backbone) == nrow(abundance %>%
-                                    distinct(taxon)%>%
-                                    # we know for unknown species we cannot get any taxo data
-                                    filter(taxon %!in% c("Unknown")))) {
-     print("All species have a resolved taxonomy")
+                                    distinct(taxon) %>%
+                                    filter(taxon != "Unknown"))) {
+     print("All species have a resolved taxonomy and is exported as `data_clean/invertebrate_taxonomy.csv`")
+     
+     dir.create("data_clean")
+     
+     write_csv(taxon_backbone %>%
+                 select(-query),
+               "data_clean/invertebrate_taxonomy.csv")
+     
    } else {
-     missing = anti_join(abundance%>%
+     missing = anti_join(abundance %>%
                            distinct(taxon),
                          taxon_backbone,
                          by = c("taxon" = "query"))
-     glue::glue("The following species have an unresloved taxonomy: {missing}")
+     stop(glue::glue("The following species have an unresloved taxonomy: {missing}"))
    }
 }
 
-### 3) Exporting taxonomic data ----
 
-dir.create("data_clean")
-
-write_csv(taxon_backbone,
-          "data_clean/invertebrate_taxonomy.csv")
