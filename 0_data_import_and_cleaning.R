@@ -16,8 +16,6 @@ library(taxize)
 ### >> b) Data import ----
 
 abundance = read.csv("data_raw//bwgv1_abundance.csv")
-bromeliads = read.csv("data_raw//bwgv1_bromeliads.csv")
-traits = read.csv("data_raw//bwgv1_traits.csv")
 
 ### 1) Some initial checks ----
 
@@ -33,35 +31,6 @@ abundance =
   mutate(taxon = str_to_title(str_remove_all(bwg_name,
                                              "[^[:alpha:]]")))
 
-#' ------------------------------------------------------------------#
-#'  The aim here is to check if the bromeliad IDs all 'talk'/match 
-#'  with those in the `bromeliad` df. 
-#' ------------------------------------------------------------------#
-
-if (nrow(anti_join(abundance, bromeliads)) > 0) {
-  # this will stop/exit the current code chunk if there is no match
-  stop() 
-  print("Not all bromeliad ID's have a match")
-} else {
-  # current code chunk will be run if all bromeliad IDs match
-  print("All bromeliad ID's have a match")
-}
-
-#' ------------------------------------------------------------------#
-#'  The aim here is to check if the species IDs all 'talk'/match 
-#'  with those in the `triats` df. 
-#' ------------------------------------------------------------------#
-
-if (nrow(anti_join(abundance, traits)) > 0) {
-  # this will stop/exit the current code chunk if there is no match
-  stop() 
-  print("Not all species ID's have a match")
-} else {
-  # current code chunk will be run if all bromeliad IDs match
-  print("All species ID's have a match")
-}
-
-
 ### 2) Adding taxonomic data ----
 
 library(taxize)
@@ -71,76 +40,81 @@ library(taxize)
 taxon_backbone = 
   abundance %>%
   distinct(taxon) %>%
-  # we know for unknow species we cannot get any taxo data
+  # we know for unknown species we cannot get any taxo data
   filter(taxon != "Unknown") %>%
   pull(taxon) %>%
+  # get taxo data
   classification(db = 'itis',
                  # remove 'interaction' to 'automate' pocess
                  ask = FALSE) %>% 
+  # wrangle into prettier format
   rbind() %>% 
   tibble() %>% 
   select(-id) %>% 
   filter(rank %in% c("kingdom", "phylum", "class", "subclass",
                      "order", "family", "genus", "species")) %>%
-  pivot_wider(., id_cols = "query", names_from = "rank", values_from = "name")
+  pivot_wider(., 
+              id_cols = "query", 
+              names_from = "rank", 
+              values_from = "name") %>%
+  #' ------------------------------------------------------------------#
+  #'  Here we can adress species that were not 'captured' in the first 
+  #'  pass at getting upstream taxonomic information. If more species 
+  #'  are added and are unmatched you can adress that here as well
+  #' ------------------------------------------------------------------#
+  bind_rows(abundance %>%
+              distinct(taxon) %>%
+              # we know for unknown species we cannot get any taxo data
+              filter(taxon %in% c("Oligochaeta", "Hirudinea")) %>%
+              pull(taxon) %>%
+              get_wormsid() %>%
+              classification(db = 'worms') %>% 
+              rbind() %>% 
+              tibble() %>% 
+              select(-id) %>% 
+              # make lowercase
+              mutate(rank = str_to_lower(rank)) %>% 
+              filter(rank %in% c("kingdom", "phylum", "class", "subclass",
+                                 "order", "family", "genus", "species")) %>%
+              pivot_wider(., id_cols = "query", names_from = "rank", values_from = "name") %>%
+              mutate(query = subclass))
+
+
+#' ------------------------------------------------------------------#
+#'  This checks if all species have a resloved taxonomy by comparing 
+#'  the number of rows (species) in the new `taxon_backbone` df to 
+#'  the original dataset - if it 'passes' then we write the file to 
+#'  a .csv
+#' ------------------------------------------------------------------#
 
 if (nrow(taxon_backbone) == nrow(abundance %>%
-                                 distinct(taxon)%>%
+                                 distinct(taxon) %>%
                                  # we know for unknown species we cannot get any taxo data
                                  filter(taxon != "Unknown"))) {
-  print("All species have a resolved taxonomy :)")
+  print("All species have a resolved taxonomy :) and are exported as `data_clean/invertebrate_taxonomy.csv`")
+  
+  # all checks passed: write file
+  
+  dir.create("data_clean")
+  
+  write_csv(taxon_backbone %>%
+              select(-query),
+            "data_clean/invertebrate_taxonomy.csv")
+  
+  #' ------------------------------------------------------------------#
+  #'  If the evalutation fails i.e row numbers are not the same it 
+  #'  throws an error and lists 'unresolved' species
+  #' ------------------------------------------------------------------#
+  
 } else {
-  missing = anti_join(abundance%>%
-              distinct(taxon),
-            taxon_backbone,
-            by = c("taxon" = "query"))
-   glue::glue("The following species have an unresloved taxonomy: {missing}")
-   
-   #' ------------------------------------------------------------------#
-   #'  Here it throws the 'error' that some species are unresloved and
-   #'  we need to go in and adress that 'manually' since both are worm
-   #'  species I decided to query the wroms database
-   #' ------------------------------------------------------------------#
-   
-   taxon_backbone = 
-     taxon_backbone %>%
-     bind_rows(abundance %>%
-                 distinct(taxon) %>%
-                 # we know for unknown species we cannot get any taxo data
-                 filter(taxon %in% c("Oligochaeta", "Hirudinea")) %>%
-                 pull(taxon) %>%
-                 get_wormsid() %>%
-                 classification(db = 'worms') %>% 
-                 rbind() %>% 
-                 tibble() %>% 
-                 select(-id) %>% 
-                 # make lowercase
-                 mutate(rank = str_to_lower(rank)) %>% 
-                 filter(rank %in% c("kingdom", "phylum", "class", "subclass",
-                                    "order", "family", "genus", "species")) %>%
-                 pivot_wider(., id_cols = "query", names_from = "rank", values_from = "name") %>%
-                 mutate(query = subclass))
-   
-   # Check again
-   
-   if (nrow(taxon_backbone) == nrow(abundance %>%
-                                    distinct(taxon) %>%
-                                    filter(taxon != "Unknown"))) {
-     print("All species have a resolved taxonomy and is exported as `data_clean/invertebrate_taxonomy.csv`")
-     
-     dir.create("data_clean")
-     
-     write_csv(taxon_backbone %>%
-                 select(-query),
-               "data_clean/invertebrate_taxonomy.csv")
-     
-   } else {
-     missing = anti_join(abundance %>%
-                           distinct(taxon),
-                         taxon_backbone,
-                         by = c("taxon" = "query"))
-     stop(glue::glue("The following species have an unresloved taxonomy: {missing}"))
-   }
+  
+  missing = anti_join(abundance %>%
+                        distinct(taxon),
+                      taxon_backbone,
+                      by = c("taxon" = "query"))
+  
+  stop(glue::glue("The following species have an unresloved taxonomy: {missing}"))
 }
+
 
 
