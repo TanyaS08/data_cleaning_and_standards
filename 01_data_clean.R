@@ -1,6 +1,6 @@
 #' ------------------------------------------------------------------#
 #'  LDP Scientific Data Management in Ecology & Evolution Assignment 1
-#'  script for importing and _some_ cleaning the bwgv dataset.
+#'  17 September 2021
 #'  Developed by: TANYA STRYDOM
 #'  Reachable at tanya.strydom@umontreal.ca
 #' ------------------------------------------------------------------#
@@ -10,15 +10,14 @@
 library(here)
 library(tidyverse)
 library(assertr)
-library(ggplot2)
 library(taxize)
 
 ### >> b) Data import ----
 
 abundance = read.csv("data_raw/bwgv1_abundance.csv")
-bromeliads <- read_csv("data_raw/bwgv1_bromeliads.csv")
+bromeliads = read_csv("data_raw/bwgv1_bromeliads.csv")
 
-# create fodler if not present in wd
+# create folder if not present in wd to save ouitputs
 dir.create("data_clean")
 
 ### 1) Some initial checks ----
@@ -41,8 +40,7 @@ abundance =
 
 # Make a reference dataframe with the correct spellings of Latin names 
 # for species recorded in the study system, which can itself be quality 
-# controlled for taxonomic updates, etc. (normally I would have this as
-# a separate .csv file instead of making it from the data itself)
+# controlled for taxonomic updates, etc.
 
 species_list <- 
   bromeliads %>% 
@@ -61,23 +59,27 @@ bromeliads <-
            remove = FALSE)
 
 # Check for cases where the entry in the bromeliads dataset 
-#is different from the species list
+# is different from the species list i.e. a genus was 
+# maybe mis-specified (this could possibly also be picked
+# up by a distinct() call though)
 anti_join(bromeliads, species_list, by = "binomial") 
 # returns no inconsistencies
 
-### >> b) Chekc for number of leaves and leaf water ----
+### >> b) Check for number of leaves and leaf water ----
 
 # Here we're checking whether two measured variables, 
 # max_water and num_leaf, do not have any biologically 
 # unrealistic (i.e., outlier) values and that none of
 # the values are negative; neither measured variable should 
-# be less than 0, though NA values are possible.
+# be greater than 0, though NA values are possible.
 
-bromeliads_leafwater <- bromeliads %>% 
+#select target columns
+bromeliads_leafwater = 
+  bromeliads %>% 
   select(bromeliad_id,binomial,genus,species,max_water,num_leaf)
 
 ##### Steps: 
-#### 1. check the structure of both variables to make sure they're numeric
+#### 1. check both variables to make sure they're numeric
 
 verify(bromeliads_leafwater,
        is.numeric(max_water)
@@ -93,10 +95,11 @@ verify(bromeliads_leafwater,
 
 # first using the `error_fun` call in insist() we can add the 
 #outputs as attributes which we use to find the 'problem' bromes
+
 bromeliads_leafwater_w_attribute = 
   bromeliads_leafwater %>% 
   insist(within_n_mads(2), 
-         # I combined both vars of interest to 'trim' code
+         # I combined both vars of interest to 'trim' the code
          c(max_water, num_leaf), 
          error_fun = error_append)
 
@@ -104,9 +107,11 @@ bromeliads_leafwater_w_attribute =
 # here (based on attributes) pull the index (row number) for 
 # bromes that 'failed' the insist() 'test'
 
+# max_water outliers
 outlier_bromeliads_max_water = 
   attributes(bromeliads_leafwater_w_attribute)$assertr_errors[[1]]$error_df$index
 
+# num_leaf outliers
 outlier_bromeliads_num_leaf = 
   attributes(bromeliads_leafwater_w_attribute)$assertr_errors[[2]]$error_df$index
 
@@ -114,8 +119,9 @@ outlier_bromeliads_num_leaf =
 # intersect here only returns row numbers for bromes that
 # have both leaves and max water that are outliers so point
 # to bromes that are most likely 'freakishly' large/small i.e. 
-# 'true' outliers other entries I would probably check for potential 
-# data entry mistakes?
+# 'true' outliers (since we expect these two variables to co-vary)
+# other entries I would probably check for potential 
+# data entry mistakes
 
 bromeliads_leafwater %>%
   filter(row_number() %in% 
@@ -123,7 +129,7 @@ bromeliads_leafwater %>%
                      outlier_bromeliads_num_leaf))
 
 # for simplicity though we can create a .csv that lists all outlier
-# bromes. 
+# bromes that a more informed user can look into. 
 
 bromeliads_leafwater %>%
   filter(row_number() %in% outlier_bromeliads_max_water) %>%
@@ -133,7 +139,7 @@ bromeliads_leafwater %>%
               mutate(outlier_variable = "num_leaf")) %>%
   write_csv("data_clean/outlier_bromeliads.csv")
 
-### 3) Adding taxonomic data ----
+### 3) Adding taxonomic data for invertebrates ----
 
 library(taxize)
 
