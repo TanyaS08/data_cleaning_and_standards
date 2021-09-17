@@ -35,17 +35,17 @@ abundance =
 
 library(taxize)
 
-# get taxo data 
+# get taxonomic data 
 
 taxon_backbone = 
   abundance %>%
   distinct(taxon) %>%
-  # we know for unknown species we cannot get any taxo data
+  # we know for unknown species we cannot get any taxonomic data
   filter(taxon != "Unknown") %>%
   pull(taxon) %>%
   # get taxo data
   classification(db = 'itis',
-                 # remove 'interaction' to 'automate' pocess
+                 # remove 'user interaction' to automate the pocess
                  ask = FALSE) %>% 
   # wrangle into prettier format
   rbind() %>% 
@@ -53,8 +53,7 @@ taxon_backbone =
   select(-id) %>% 
   filter(rank %in% c("kingdom", "phylum", "class", "subclass",
                      "order", "family", "genus", "species")) %>%
-  pivot_wider(., 
-              id_cols = "query", 
+  pivot_wider(id_cols = "query", 
               names_from = "rank", 
               values_from = "name") %>%
   #' ------------------------------------------------------------------#
@@ -62,29 +61,32 @@ taxon_backbone =
   #'  pass at getting upstream taxonomic information. If more species 
   #'  are added and are unmatched you can adress that here as well
   #' ------------------------------------------------------------------#
-  bind_rows(abundance %>%
-              distinct(taxon) %>%
-              # we know for unknown species we cannot get any taxo data
-              filter(taxon %in% c("Oligochaeta", "Hirudinea")) %>%
-              pull(taxon) %>%
-              get_wormsid() %>%
-              classification(db = 'worms') %>% 
-              rbind() %>% 
-              tibble() %>% 
-              select(-id) %>% 
-              # make lowercase
-              mutate(rank = str_to_lower(rank)) %>% 
-              filter(rank %in% c("kingdom", "phylum", "class", "subclass",
-                                 "order", "family", "genus", "species")) %>%
-              pivot_wider(., id_cols = "query", names_from = "rank", values_from = "name") %>%
-              mutate(query = subclass))
+  bind_rows(
+    abundance %>%
+      distinct(taxon) %>%
+      # these were the two unmatched morpho species
+      filter(taxon %in% c("Oligochaeta", "Hirudinea")) %>%
+      pull(taxon) %>%
+      # querying worms db
+      classification(db = 'worms') %>% 
+      rbind() %>% 
+      tibble() %>% 
+      select(-id) %>% 
+      # make lowercase
+      mutate(rank = str_to_lower(rank)) %>% 
+      filter(rank %in% c("kingdom", "phylum", "class", "subclass",
+                         "order", "family", "genus", "species")) %>%
+      pivot_wider(id_cols = "query",
+                  names_from = "rank",
+                  values_from = "name")
+  )
 
 
 #' ------------------------------------------------------------------#
 #'  This checks if all species have a resloved taxonomy by comparing 
 #'  the number of rows (species) in the new `taxon_backbone` df to 
-#'  the original dataset - if it 'passes' then we write the file to 
-#'  a .csv
+#'  the original (`abundance`) dataset - if it 'passes' we then write 
+#'  the file to a .csv file
 #' ------------------------------------------------------------------#
 
 if (nrow(taxon_backbone) == nrow(abundance %>%
@@ -103,7 +105,7 @@ if (nrow(taxon_backbone) == nrow(abundance %>%
   
   #' ------------------------------------------------------------------#
   #'  If the evalutation fails i.e row numbers are not the same it 
-  #'  throws an error and lists 'unresolved' species
+  #'  throws an error and lists the 'unresolved' species
   #' ------------------------------------------------------------------#
   
 } else {
