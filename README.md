@@ -10,7 +10,7 @@ data cleaning task that your group sees fit). Write a brief description of the i
 the data and the approach you developed to resolve it - even if you developed the code with
 other students this part should be done individually.
 
-## End product
+## End product (Goal)
 
 Two things (because I had too much fun...)
 
@@ -35,5 +35,7 @@ could not be resolved (and would then have to be fixed). In short: something con
 similar to to assertr but tailored for constructing/filling in the taxonomic information for
 invertebrate species. The resolved taxonomy (for all morpho species barring those listed as
 unknown) for the current dataset can be found in `clean_data/`. As not all species could be 
-resolved by querying a single database (without requiring user input and thus negating the automation/reproducibility of the workflow) two different databases are queried.
+resolved by querying a single database (without requiring user input and thus negating the
+automation/reproducibility of the workflow) two different databases are (automatically)
+queried.
 
