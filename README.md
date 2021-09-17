@@ -34,5 +34,6 @@ start to finish (and works) but will 'break' if new species were to be added and
 could not be resolved (and would then have to be fixed). In short: something conceptually
 similar to to assertr but tailored for constructing/filling in the taxonomic information for
 invertebrate species. The resolved taxonomy (for all morpho species barring those listed as
-unknown) for the current dataset can be found in `clean_data/`.
+unknown) for the current dataset can be found in `clean_data/`. As not all species could be 
+resolved by querying a single database (without requiring user input and thus negating the automation/reproducibility of the workflow) two different databases are queried.
 
