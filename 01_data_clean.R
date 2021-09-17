@@ -41,7 +41,13 @@ bromeliads <-
   rename(binomial = species) %>%
   separate(col = binomial, into = c("genus","species"),
            sep = "_",
-           remove = FALSE)
+           remove = FALSE)  %>%
+  # this adds whitepsace for the binomial name (for finding taxonomic info)
+  mutate(binomial = if_else(species == "sp",
+                            genus,
+                            str_replace_all(binomial,
+                                            "_",
+                                            " ")))
 
 # Check for cases where the entry in the bromeliads dataset 
 # is different from the species list i.e. a genus was 
@@ -61,7 +67,8 @@ anti_join(bromeliads, species_list, by = "binomial")
 #select target columns
 bromeliads_leafwater = 
   bromeliads %>% 
-  select(bromeliad_id,binomial,genus,species,max_water,num_leaf)
+  select(bromeliad_id, binomial, genus, species,
+         max_water, num_leaf)
 
 ##### Steps: 
 #### 1. check both variables to make sure they're numeric
@@ -117,7 +124,7 @@ bromeliads_leafwater %>%
 # bromes that a more informed user can look into. 
 
 bromeliads_leafwater %>%
-filter(row_number() %in% outlier_bromeliads_max_water) %>%
+  filter(row_number() %in% outlier_bromeliads_max_water) %>%
   mutate(outlier_variable = "max_water") %>%
   bind_rows(bromeliads_leafwater %>%
               filter(row_number() %in% outlier_bromeliads_num_leaf) %>%
@@ -131,39 +138,49 @@ library(taxize)
 # get taxonomic data 
 
 taxon_backbone = 
-  bromeliads_leafwater %>%
-  distinct(genus) %>%
-  pull(genus) %>%
+  bromeliads %>%
+  distinct(binomial) %>%
+  pull(binomial) %>%
   # get taxo data
-  classification(db = 'itis',
+  classification(db = 'ncbi',
                  # remove 'user interaction' to automate the pocess
                  ask = FALSE) %>% 
   # wrangle into prettier format
   rbind() %>% 
   tibble() %>% 
-  select(-id) %>% 
+  select(-id) %>%
+  mutate(rank = str_to_lower(rank)) %>% 
   filter(rank %in% c("kingdom", "phylum", "class", "subclass",
                      "order", "family", "genus", "species")) %>%
   pivot_wider(id_cols = "query", 
               names_from = "rank", 
-              values_from = "name") 
-  #' ------------------------------------------------------------------#
-  #'  Here we can adress species that were not 'captured' in the first 
-  #'  pass at getting upstream taxonomic information by querying a 
-  #'  different database. If more species are added and are unmatched you 
-  #'  can address that here as well and add them using a `row_bind()` call
-  #' ------------------------------------------------------------------#
+              values_from = "name")
+# no match for Vriesea kupperiana BUT we know it will share same 
+# higher taxonomy with other Vriesea sp. so we can duplicate them
+
+taxon_backbone = 
+  taxon_backbone %>%
+  bind_rows(taxon_backbone %>%
+              filter(query == "Vriesea" & is.na(species)) %>%
+              mutate(species = "kupperiana"))
+
+#' ------------------------------------------------------------------#
+#'  Here we can adress species that were not 'captured' in the first 
+#'  pass at getting upstream taxonomic information by querying a 
+#'  different database. If more species are added and are unmatched you 
+#'  can address that here as well and add them using a `bind_rows` call
+#' ------------------------------------------------------------------#
 
 
 #' ------------------------------------------------------------------#
 #'  This checks if all species have a resloved taxonomy by comparing 
 #'  the number of rows (species) in the new `taxon_backbone` df to 
-#'  the original (`bromeliads_leafwater`) dataset - if it 'passes' we 
+#'  the original (`bromeliads`) dataset - if it 'passes' we 
 #'  then write the file to a .csv file
 #' ------------------------------------------------------------------#
 
-if (nrow(taxon_backbone) == nrow(bromeliads_leafwater %>%
-                                 distinct(genus))) {
+if (nrow(taxon_backbone) == nrow(bromeliads %>%
+                                 distinct(binomial))) {
   print("All species have a resolved taxonomy :) and are exported as `data_clean/invertebrate_taxonomy.csv`")
   
   # all checks passed: write file
@@ -179,10 +196,10 @@ if (nrow(taxon_backbone) == nrow(bromeliads_leafwater %>%
   
 } else {
   
-  missing = anti_join(bromeliads_leafwater %>%
-                        distinct(genus),
+  missing = anti_join(bromeliads %>%
+                        distinct(binomial),
                       taxon_backbone,
-                      by = c("taxon" = "query"))
+                      by = c("binomial" = "query"))
   
   stop(glue::glue("The following species have an unresloved taxonomy: {missing}"))
 }

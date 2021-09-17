@@ -1,3 +1,6 @@
-kingdom,class,order,family,genus
-Plantae,Magnoliopsida,Poales,Bromeliaceae,Guzmania
-Plantae,Magnoliopsida,Poales,Bromeliaceae,Vriesea
+kingdom,phylum,class,subclass,order,family,genus,species
+Viridiplantae,Streptophyta,Magnoliopsida,Petrosaviidae,Poales,Bromeliaceae,Guzmania,NA
+Viridiplantae,Streptophyta,Magnoliopsida,Petrosaviidae,Poales,Bromeliaceae,Vriesea,NA
+Viridiplantae,Streptophyta,Magnoliopsida,Petrosaviidae,Poales,Bromeliaceae,Vriesea,Vriesea sanguinolenta
+Viridiplantae,Streptophyta,Magnoliopsida,Petrosaviidae,Poales,Bromeliaceae,Werauhia,Werauhia gladioliflora
+Viridiplantae,Streptophyta,Magnoliopsida,Petrosaviidae,Poales,Bromeliaceae,Vriesea,kupperiana
