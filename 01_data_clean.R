@@ -128,14 +128,8 @@ bromeliads_leafwater %>%
            intersect(outlier_bromeliads_max_water,
                      outlier_bromeliads_num_leaf))
 
-setdiff(outlier_bromeliads_max_water,
-        outlier_bromeliads_num_leaf)
-
 # for simplicity though we can create a .csv that lists all outlier
 # bromes that a more informed user can look into. 
-
-# helper function opposite of `%in%` i.e. not in
-'%!in%' <- function(x,y)!('%in%'(x,y))
 
 bromeliads_leafwater %>%
 filter(row_number() %in% outlier_bromeliads_max_water) %>%
@@ -170,16 +164,17 @@ taxon_backbone =
               values_from = "name") 
   #' ------------------------------------------------------------------#
   #'  Here we can adress species that were not 'captured' in the first 
-  #'  pass at getting upstream taxonomic information. If more species 
-  #'  are added and are unmatched you can adress that here as well
+  #'  pass at getting upstream taxonomic information by querying a 
+  #'  different database. If more species are added and are unmatched you 
+  #'  can address that here as well and add them using a `row_bind()` call
   #' ------------------------------------------------------------------#
 
 
 #' ------------------------------------------------------------------#
 #'  This checks if all species have a resloved taxonomy by comparing 
 #'  the number of rows (species) in the new `taxon_backbone` df to 
-#'  the original (`abundance`) dataset - if it 'passes' we then write 
-#'  the file to a .csv file
+#'  the original (`bromeliads_leafwater`) dataset - if it 'passes' we 
+#'  then write the file to a .csv file
 #' ------------------------------------------------------------------#
 
 if (nrow(taxon_backbone) == nrow(bromeliads_leafwater %>%
