@@ -14,27 +14,12 @@ library(taxize)
 
 ### >> b) Data import ----
 
-abundance = read.csv("data_raw/bwgv1_abundance.csv")
 bromeliads = read_csv("data_raw/bwgv1_bromeliads.csv")
 
 # create folder if not present in wd to save ouitputs
 dir.create("data_clean")
 
-### 1) Some initial checks ----
-
-#' ------------------------------------------------------------------#
-#'  The aim here is to check for any potential misspelling of taxon 
-#'  names in the `abundance` dataset and 'prepare' data to be used 
-#'  for {taxize}
-#' ------------------------------------------------------------------#
-
-abundance = 
-  abundance %>%
-  # remove everything BUT alpha characters and make title case
-  mutate(taxon = str_to_title(str_remove_all(bwg_name,
-                                             "[^[:alpha:]]")))
-
-### 2) Outliers in bromeliad data ----
+### 1) Outliers in bromeliad data ----
 
 ### >> a) Check genus names are spelled correctly ----
 
@@ -139,7 +124,7 @@ filter(row_number() %in% outlier_bromeliads_max_water) %>%
               mutate(outlier_variable = "num_leaf")) %>%
   write_csv("data_clean/outlier_bromeliads.csv")
 
-### 3) Adding taxonomic data for invertebrates ----
+### 2) Adding taxonomic data for bromeliads ----
 
 library(taxize)
 
