@@ -1,7 +1,3 @@
-kingdom,phylum,class,subclass,order
-Animalia,Arthropoda,Insecta,Pterygota,Diptera
-Animalia,Arthropoda,Insecta,Pterygota,Odonata
-Animalia,Arthropoda,Insecta,Pterygota,Coleoptera
-Animalia,Platyhelminthes,NA,NA,NA
-Animalia,Annelida,Clitellata,Oligochaeta,NA
-Animalia,Annelida,Clitellata,Hirudinea,NA
+kingdom,class,order,family,genus
+Plantae,Magnoliopsida,Poales,Bromeliaceae,Guzmania
+Plantae,Magnoliopsida,Poales,Bromeliaceae,Vriesea

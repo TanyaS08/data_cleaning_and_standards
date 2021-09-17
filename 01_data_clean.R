@@ -128,11 +128,17 @@ bromeliads_leafwater %>%
            intersect(outlier_bromeliads_max_water,
                      outlier_bromeliads_num_leaf))
 
+setdiff(outlier_bromeliads_max_water,
+        outlier_bromeliads_num_leaf)
+
 # for simplicity though we can create a .csv that lists all outlier
 # bromes that a more informed user can look into. 
 
+# helper function opposite of `%in%` i.e. not in
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
 bromeliads_leafwater %>%
-  filter(row_number() %in% outlier_bromeliads_max_water) %>%
+filter(row_number() %in% outlier_bromeliads_max_water) %>%
   mutate(outlier_variable = "max_water") %>%
   bind_rows(bromeliads_leafwater %>%
               filter(row_number() %in% outlier_bromeliads_num_leaf) %>%
@@ -146,11 +152,9 @@ library(taxize)
 # get taxonomic data 
 
 taxon_backbone = 
-  abundance %>%
-  distinct(taxon) %>%
-  # we know for unknown species we cannot get any taxonomic data
-  filter(taxon != "Unknown") %>%
-  pull(taxon) %>%
+  bromeliads_leafwater %>%
+  distinct(genus) %>%
+  pull(genus) %>%
   # get taxo data
   classification(db = 'itis',
                  # remove 'user interaction' to automate the pocess
@@ -163,31 +167,12 @@ taxon_backbone =
                      "order", "family", "genus", "species")) %>%
   pivot_wider(id_cols = "query", 
               names_from = "rank", 
-              values_from = "name") %>%
+              values_from = "name") 
   #' ------------------------------------------------------------------#
   #'  Here we can adress species that were not 'captured' in the first 
   #'  pass at getting upstream taxonomic information. If more species 
   #'  are added and are unmatched you can adress that here as well
   #' ------------------------------------------------------------------#
-  bind_rows(
-    abundance %>%
-      distinct(taxon) %>%
-      # these were the two unmatched morpho species
-      filter(taxon %in% c("Oligochaeta", "Hirudinea")) %>%
-      pull(taxon) %>%
-      # querying worms db
-      classification(db = 'worms') %>% 
-      rbind() %>% 
-      tibble() %>% 
-      select(-id) %>% 
-      # make lowercase
-      mutate(rank = str_to_lower(rank)) %>% 
-      filter(rank %in% c("kingdom", "phylum", "class", "subclass",
-                         "order", "family", "genus", "species")) %>%
-      pivot_wider(id_cols = "query",
-                  names_from = "rank",
-                  values_from = "name")
-  )
 
 
 #' ------------------------------------------------------------------#
@@ -197,10 +182,8 @@ taxon_backbone =
 #'  the file to a .csv file
 #' ------------------------------------------------------------------#
 
-if (nrow(taxon_backbone) == nrow(abundance %>%
-                                 distinct(taxon) %>%
-                                 # we know for unknown species we cannot get any taxo data
-                                 filter(taxon != "Unknown"))) {
+if (nrow(taxon_backbone) == nrow(bromeliads_leafwater %>%
+                                 distinct(genus))) {
   print("All species have a resolved taxonomy :) and are exported as `data_clean/invertebrate_taxonomy.csv`")
   
   # all checks passed: write file
@@ -216,8 +199,8 @@ if (nrow(taxon_backbone) == nrow(abundance %>%
   
 } else {
   
-  missing = anti_join(abundance %>%
-                        distinct(taxon),
+  missing = anti_join(bromeliads_leafwater %>%
+                        distinct(genus),
                       taxon_backbone,
                       by = c("taxon" = "query"))
   
