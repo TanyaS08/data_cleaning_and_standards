@@ -25,12 +25,14 @@ as a .csv file
 The idea here is to flag potential outlying bromeliads based on either the number of leaves
 recorded or maximum water content. The resulting .csv file (in `clean_data/`) merely lists 
 bromeliads that are considered outliers, however the decision of if these are 'true' outliers
-that need to be reomoved will be left up to the end users. There are also some other checks to
-catch potentially erroneous entries such as that all values are > 0 and are indeed numeric.
+that need to be removed will be left up to the end users. There are also some other checks to
+catch potentially erroneous entries such as that all values are positive (> 0) and are indeed
+numeric.
 
 The main aim of the second workflow is to try and create a pipeline that can can be run from
 start to finish (and works) but will 'break' if new species were to be added and their taxonomy
 could not be resolved (and would then have to be fixed). In short: something conceptually
 similar to to assertr but tailored for constructing/filling in the taxonomic information for
-invertebrate species. The resolved taxonomy can be found in `clean_data/`.
+invertebrate species. The resolved taxonomy (for all morpho species barring those listed as
+unknown) for the current dataset can be found in `clean_data/`.
 
