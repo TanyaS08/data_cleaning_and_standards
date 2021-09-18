@@ -41,5 +41,6 @@ bromeliad species. The resolved taxonomy (for all morpho species barring those l
 unknown) for the current dataset can be found in `clean_data/`. As I suppressed user interaction
 when a query has no/multiple matches to facilitate automation/reproducibility the check at the 
 end will allow users to pick up if any species were missed and they can add them to the pipeline
-where indicated in the code.
+where indicated in the code. **Note** that _Werauhia gladioliflora_ is the accepted name for
+_Vriesea gladioliflora_ as is listed in `bromeliad_taxonomy.csv` as such
 
