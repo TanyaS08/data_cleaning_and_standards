@@ -181,13 +181,13 @@ taxon_backbone =
 
 if (nrow(taxon_backbone) == nrow(bromeliads %>%
                                  distinct(binomial))) {
-  print("All species have a resolved taxonomy :) and are exported as `data_clean/invertebrate_taxonomy.csv`")
+  print("All species have a resolved taxonomy :) and are exported as `data_clean/bromeliad_taxonomy.csv`")
   
   # all checks passed: write file
   
   write_csv(taxon_backbone %>%
               select(-query),
-            "data_clean/invertebrate_taxonomy.csv")
+            "data_clean/bromeliad_taxonomy.csv")
   
   #' ------------------------------------------------------------------#
   #'  If the evalutation fails i.e row numbers are not the same it 
