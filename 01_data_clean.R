@@ -162,7 +162,7 @@ taxon_backbone =
   taxon_backbone %>%
   bind_rows(taxon_backbone %>%
               filter(query == "Vriesea" & is.na(species)) %>%
-              mutate(species = "kupperiana"))
+              mutate(species = "Vriesea kupperiana"))
 
 #' ------------------------------------------------------------------#
 #'  Here we can adress species that were not 'captured' in the first 
